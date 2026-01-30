@@ -29,7 +29,7 @@ WebDriver driver;
 	@When("jkhuki")
 	public void jkhuki() throws InterruptedException {
 	    // Write code here that turns the phrase above into concrete actions
-		driver.findElement(By.name("q")).sendKeys("India123");
+		driver.findElement(By.name("q")).sendKeys("India");
 		Thread.sleep(2000);
 		driver.findElement(By.name("q")).sendKeys(Keys.ENTER);
 		Thread.sleep(2000);
