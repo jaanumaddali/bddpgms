@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=5.0">
+<title>Team Communication Hub</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(-45deg, #1d4ed8, #7c3aed, #0ea5e9, #10b981);
+  background-size: 400% 400%;
+  animation: bg 12s ease infinite;
+}
+
+@keyframes bg {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.app {
+  max-width: 1100px;
+  margin: auto;
+  padding: 20px;
+}
+
+/* HOME */
+.home {
+  text-align: center;
+  color: #fff;
+  margin-bottom: 20px;
+}
+
+.home h1 {
+  margin-bottom: 10px;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.feature {
+  background: rgba(255,255,255,0.15);
+  padding: 15px;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+/* CHAT */
+.chat-container {
+  background: rgba(255,255,255,0.9);
+  border-radius: 16px;
+  height: 70vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+}
+
+header {
+  background: #2563eb;
+  color: #fff;
+  padding: 14px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.messages {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.message {
+  margin-bottom: 12px;
+}
+
+.user {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.text, .file-box {
+  background: #e5e7eb;
+  padding: 10px;
+  border-radius: 10px;
+  max-width: 80%;
+}
+
+.self .text {
+  background: #2563eb;
+  color: #fff;
+}
+
+.ai .text {
+  background: #10b981;
+  color: #fff;
+}
+
+.image {
+  max-width: 200px;
+  border-radius: 10px;
+}
+
+/* FOOTER */
+footer {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  border-top: 1px solid #ddd;
+}
+
+footer input[type="text"] {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+footer button {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.emoji-box {
+  position: absolute;
+  bottom: 80px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px;
+  display: none;
+}
+
+.emoji-box span {
+  cursor: pointer;
+  font-size: 22px;
+  margin: 5px;
+}
+
+@media(max-width:600px){
+  .chat-container {
+    height: 75vh;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- HOME -->
+  <div class="home">
+    <h1>Team Chat</h1>
+    <p>Chat • Share Files • Send Images • Use Emojis • AI Assistant</p>
+
+    <div class="features">
+      <div class="feature">💬 Real-time Team Chat</div>
+      <div class="feature">📁 File & Image Sharing</div>
+      <div class="feature">😄 Emoji Support</div>
+      <div class="feature">🤖 AI Assistant</div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-container">
+    <header>Team Chat</header>
+    <div class="messages" id="messages"></div>
+
+    <footer>
+      <button onclick="toggleEmoji()">😄</button>
+      <input type="file" id="fileInput" hidden>
+      <button onclick="document.getElementById('fileInput').click()">📎</button>
+      <input type="text" id="messageInput" placeholder="Type a message...">
+      <button onclick="sendMessage()">Send</button>
+    </footer>
+  </div>
+
+</div>
+
+<div class="emoji-box" id="emojiBox">
+  😀 😃 😄 😁 😂 🤣 😊 😍 ❤️ 👍 🔥 🚀
+</div>
+
+<script>
+const channel = new BroadcastChannel("team-chat");
+const messages = document.getElementById("messages");
+const emojiBox = document.getElementById("emojiBox");
+
+let username = localStorage.getItem("username");
+if (!username) {
+  username = prompt("Enter your name");
+  localStorage.setItem("username", username);
+}
+
+function addMessage(html, cls="") {
+  const div = document.createElement("div");
+  div.className = "message " + cls;
+  div.innerHTML = html;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function sendMessage() {
+  const input = document.getElementById("messageInput");
+  const text = input.value.trim();
+  if (!text) return;
+
+  const html = `<div class="user">${username}</div><div class="text">${text}</div>`;
+  addMessage(html, "self");
+  channel.postMessage({ type: "text", user: username, text });
+
+  input.value = "";
+  setTimeout(()=>aiReply(text),600);
+}
+
+channel.onmessage = e => {
+  if (e.data.user === username) return;
+
+  if (e.data.type === "text") {
+    addMessage(`<div class="user">${e.data.user}</div><div class="text">${e.data.text}</div>`);
+  }
+  if (e.data.type === "image") {
+    addMessage(`<div class="user">${e.data.user}</div><img src="${e.data.data}" class="image">`);
+  }
+  if (e.data.type === "file") {
+    addMessage(`<div class="user">${e.data.user}</div><a class="file-box" download="${e.data.name}" href="${e.data.data}">📄 ${e.data.name}</a>`);
+  }
+};
+
+// FILE & IMAGE
+document.getElementById("fileInput").onchange = e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (file.type.startsWith("image")) {
+      addMessage(`<div class="user">${username}</div><img src="${reader.result}" class="image">`, "self");
+      channel.postMessage({ type:"image", user:username, data:reader.result });
+    } else {
+      addMessage(`<div class="user">${username}</div><a class="file-box" download="${file.name}" href="${reader.result}">📄 ${file.name}</a>`, "self");
+      channel.postMessage({ type:"file", user:username, name:file.name, data:reader.result });
+    }
+  };
+  reader.readAsDataURL(file);
+};
+
+// EMOJI
+function toggleEmoji(){
+  emojiBox.style.display = emojiBox.style.display === "block" ? "none" : "block";
+}
+emojiBox.onclick = e => {
+  if (e.target.tagName === "SPAN" || e.target.nodeType === 3) {
+    document.getElementById("messageInput").value += e.target.textContent;
+  }
+};
+
+// AI
+function aiReply(msg){
+  if(msg.toLowerCase().includes("hello")){
+    addMessage(`<div class="user">AI Assistant</div><div class="text">Hello 👋 How can I help?</div>`, "ai");
+  }
+}
+</script>
+
+</body>
+</html>
